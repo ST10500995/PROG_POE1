@@ -36,6 +36,14 @@ class MessageTest {
         assertEquals(message.getMessageId().substring(0, 2) + ":0:HITONIGHT", message.getMessageHash());
     }
 
+    @Test void idUsesRecipientSubstringAndOneBasedMessageCounter() {
+        assertEquals("0000000001", Message.generateMessageId("+27718693002", 0));
+        assertEquals("0000000002", Message.generateMessageId("+27718693002", 1));
+        Message message = new Message(0, "+27718693002", "Hi Mike, can you join us for dinner tonight?",
+                Message.generateMessageId("+27718693002", 0));
+        assertEquals("00:0:HITONIGHT", message.getMessageHash());
+    }
+
     @Test void sendDisregardAndStoreActionsReturnExpectedMessages() throws Exception {
         Message sent = new Message(0, "+27718693002", "Hello there");
         assertEquals("Message successfully sent.", sent.SentMessage(1));
@@ -48,5 +56,30 @@ class MessageTest {
         stored.storeMessage(json);
         assertTrue(Files.readString(json).contains("\"status\":\"Stored\""));
         assertEquals("Message successfully stored.", stored.SentMessage(3));
+    }
+
+    @Test void storedJsonAppendsEntriesAndEscapesMessageText() throws Exception {
+        Path json = tempDir.resolve("stored_messages.json");
+        Message first = new Message(0, "+27718693002", "Say \"hello\"\\again\nplease",
+                Message.generateMessageId("+27718693002", 0));
+        first.storeMessage(json);
+        Message second = new Message(1, "+27718693002", "Second message",
+                Message.generateMessageId("+27718693002", 1));
+        second.storeMessage(json);
+
+        String content = Files.readString(json);
+        assertTrue(content.startsWith("["));
+        assertTrue(content.endsWith("]"));
+        assertEquals(2, content.split("\\\"messageId\\\"", -1).length - 1);
+        assertTrue(content.contains("Say \\\"hello\\\"\\\\again\\nplease"));
+    }
+
+    @Test void onlySuccessfullySentMessagesAreCounted() {
+        Message message = new Message(0, "+27718693002", "Hello there");
+        assertEquals(0, message.returnTotalMessagess());
+        message.SentMessage(2);
+        assertEquals(0, message.returnTotalMessagess());
+        message.SentMessage(1);
+        assertEquals(1, message.returnTotalMessagess());
     }
 }

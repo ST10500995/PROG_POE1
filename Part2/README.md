@@ -24,4 +24,4 @@ Messages can be sent, disregarded, or stored in `stored_messages.json` in the wo
 mvn test
 ```
 
-GitHub Actions runs the Maven unit tests on pushes and pull requests using the workflow in `.github/workflows/test-java.yml`.
+GitHub Actions runs the Maven unit tests for both Part One and Part Two on pushes and pull requests using the repository workflow at `.github/workflows/test-java.yml`.

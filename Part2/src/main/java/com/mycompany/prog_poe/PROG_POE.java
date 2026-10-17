@@ -67,32 +67,38 @@ public class PROG_POE {
                         System.out.println("You have reached the number of messages selected.");
                         break;
                     }
-                    while (messages.size() < totalMessages) {
-                        int messageNumber = messages.size();
-                        System.out.println("\nMessage " + (messageNumber + 1) + " of " + totalMessages);
-                        System.out.print("Recipient (+27 followed by 9 digits): ");
-                        String recipient = scanner.nextLine().trim();
-                        System.out.print("Message (maximum 250 characters): ");
-                        String body = scanner.nextLine();
-                        Message message = new Message(messageNumber, recipient, body);
-                        System.out.println(message.checkRecipientCell());
-                        System.out.println(message.validateMessage());
-                        if (!message.isRecipientValid() || !message.isMessageValid()) {
-                            System.out.println("Message was not processed. Please select Send Messages to try again.");
-                            break;
+                    for (int messageNumber = messages.size(); messageNumber < totalMessages; messageNumber++) {
+                        Message message;
+                        while (true) {
+                            System.out.println("\nMessage " + (messageNumber + 1) + " of " + totalMessages);
+                            System.out.print("Recipient (+27 followed by 9 digits): ");
+                            String recipient = scanner.nextLine().trim();
+                            System.out.print("Message (maximum 250 characters): ");
+                            String body = scanner.nextLine();
+                            message = new Message(messageNumber, recipient, body,
+                                    Message.generateMessageId(recipient, messageNumber));
+                            System.out.println(message.checkRecipientCell());
+                            System.out.println(message.validateMessage());
+                            if (message.isRecipientValid() && message.isMessageValid()) break;
+                            System.out.println("Please re-enter the recipient and message.");
                         }
                         System.out.println("Message ID generated: " + message.getMessageId());
                         System.out.println("Message Hash: " + message.getMessageHash());
                         System.out.println("Choose: 1) Send Message  2) Disregard Message  3) Store Message");
-                        int action = readInt(scanner, "Your choice: ");
+                        int action = readIntInRange(scanner, "Your choice: ", 1, 3);
                         if (action == 2) {
-                            System.out.print("Enter 0 to delete/disregard this message: ");
-                            String confirmation = scanner.nextLine().trim();
-                            if (!"0".equals(confirmation)) System.out.println("Message kept as disregarded.");
+                            System.out.print("Enter 0 to delete the message: ");
+                            scanner.nextLine();
                         }
                         if (action == 3) {
-                            try { message.storeMessage(STORED_MESSAGES_FILE); }
-                            catch (IOException ex) { System.out.println("Could not store message: " + ex.getMessage()); }
+                            try {
+                                message.storeMessage(STORED_MESSAGES_FILE);
+                            } catch (IOException ex) {
+                                System.out.println("Could not store message: " + ex.getMessage());
+                                System.out.println("The message was not added. Choose Send Messages to retry it.");
+                                messageNumber--;
+                                continue;
+                            }
                         }
                         System.out.println(message.SentMessage(action));
                         System.out.println(message.printMessages());
@@ -102,7 +108,7 @@ public class PROG_POE {
                     System.out.println("Total messages sent: " + sentCount);
                     break;
                 case 2:
-                    System.out.println("Coming Soon.");
+                    printMessages(messages);
                     break;
                 case 3:
                     running = false;
@@ -140,5 +146,25 @@ public class PROG_POE {
             if (value < 1) System.out.println("Enter at least 1 message.");
         } while (value < 1);
         return value;
+    }
+
+    private static int readIntInRange(Scanner scanner, String prompt, int minimum, int maximum) {
+        while (true) {
+            int value = readInt(scanner, prompt);
+            if (value >= minimum && value <= maximum) return value;
+            System.out.println("Enter a number from " + minimum + " to " + maximum + ".");
+        }
+    }
+
+    private static void printMessages(List<Message> messages) {
+        boolean anySent = false;
+        for (Message message : messages) {
+            if ("Sent".equals(message.getStatus())) {
+                if (anySent) System.out.println();
+                System.out.println(message.printMessages());
+                anySent = true;
+            }
+        }
+        if (!anySent) System.out.println("No messages have been sent yet.");
     }
 }
